@@ -2,16 +2,83 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Summary</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check-In Summary</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <h2>Check-In Summary</h2>
-    <ul>
-        {% for section, score in summary.items() %}
-            <li><strong>{{ section }}:</strong> {{ score }}/100</li>
-        {% endfor %}
-    </ul>
-    <a href="/logout">Logout</a>
+    <div class="container summary-container">
+        <div class="header">
+            <h2>Check-In Summary</h2>
+            <p>Here's an overview of your emotional well-being scores with personalized suggestions</p>
+        </div>
+        <div class="scores-grid">
+            {% for section, score in summary.items() %}
+            <div class="score-card">
+                <div class="score-section">
+                    <h3>{{ section }}</h3>
+                    <div class="score-circle" data-score="{{ score }}">
+                        <canvas width="150" height="150"></canvas>
+                        <div class="score-value">{{ score }}</div>
+                    </div>
+                    <div class="score-label">out of 100</div>
+                </div>
+                <div class="suggestion-section">
+                    <div class="suggestion-title">Personalized Insights</div>
+                    <div class="suggestion-text">
+                        {{ suggestions[section] }}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="action-container">
+            <a href="/logout" class="logout-button">Logout</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const scoreCircles = document.querySelectorAll('.score-circle');
+            
+            scoreCircles.forEach(circle => {
+                const canvas = circle.querySelector('canvas');
+                const ctx = canvas.getContext('2d');
+                const score = parseInt(circle.dataset.score);
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const radius = 65;
+                
+                // Background circle
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                ctx.strokeStyle = '#e1e1e1';
+                ctx.lineWidth = 10;
+                ctx.stroke();
+                
+                // Score arc
+                const startAngle = -0.5 * Math.PI; // Start from top
+                const endAngle = (2 * (score / 100) - 0.5) * Math.PI;
+                
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                ctx.strokeStyle = createGradient(ctx, centerX, centerY, radius);
+                ctx.lineWidth = 10;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+            });
+
+            function createGradient(ctx, centerX, centerY, radius) {
+                const gradient = ctx.createLinearGradient(
+                    centerX - radius, centerY - radius,
+                    centerX + radius, centerY + radius
+                );
+                gradient.addColorStop(0, '#667eea');
+                gradient.addColorStop(1, '#764ba2');
+                return gradient;
+            }
+        });
+    </script>
 </body>
 </html>

@@ -2,20 +2,156 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Emotional Check-In</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <h2>Emotional Check-In</h2>
-    <form method="POST">
-        {% for category, qs in questions.items() %}
-            <h3>{{ category }}</h3>
-            {% for q in qs %}
-                <label>{{ q }}</label><br>
-                <input type="text" name="{{ category }}_{{ loop.index0 }}" required><br><br>
+    <div class="container checkin-container">
+        <div class="header">
+            <h2>Emotional Check-In</h2>
+            <p>Take a moment to reflect on your emotional state</p>
+        </div>
+        <form id="checkinForm" method="POST">
+            {% for category, qs in questions.items() %}
+                <div class="category-section" id="{{ category|lower|replace(' & ', '-')|replace(' ', '-') }}">
+                    <h3>{{ category }}</h3>
+                    {% for q in qs %}
+                        <div class="question-group">
+                            <label>{{ q }}</label>
+                            <input type="text" name="{{ category }}_{{ loop.index0 }}" required>
+                            <div class="error-message">This field is required</div>
+                        </div>
+                    {% endfor %}
+                </div>
             {% endfor %}
-        {% endfor %}
-        <button type="submit">Submit</button>
-    </form>
+            <div class="navigation-container">
+                <div class="progress-bar">
+                    <div class="progress" style="width: 25%"></div>
+                </div>
+                <div class="step-indicator"></div>
+                <div class="navigation-buttons">
+                    <div class="nav-left">
+                        <button type="button" class="prev-btn" id="prevBtn" style="display: none;">Previous</button>
+                    </div>
+                    <div class="nav-right">
+                        <button type="button" class="next-btn" id="nextBtn">Next</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('checkinForm');
+            const sections = document.querySelectorAll('.category-section');
+            const nextBtn = document.getElementById('nextBtn');
+            const prevBtn = document.getElementById('prevBtn');
+            const progress = document.querySelector('.progress');
+            const stepIndicator = document.querySelector('.step-indicator');
+
+            let currentStep = 0;
+
+            // Hide all error messages initially
+            document.querySelectorAll('.error-message').forEach(msg => {
+                msg.style.display = 'none';
+            });
+
+            // Create step indicators
+            sections.forEach(() => {
+                const dot = document.createElement('div');
+                dot.className = 'step-dot';
+                stepIndicator.appendChild(dot);
+            });
+
+            const updateStepIndicators = () => {
+                const dots = document.querySelectorAll('.step-dot');
+                dots.forEach((dot, index) => {
+                    dot.className = `step-dot ${index <= currentStep ? 'active' : ''}`;
+                });
+            };
+
+            // Initialize first section
+            sections[0].classList.add('active');
+            updateStepIndicators();
+
+            const validateSection = (section) => {
+                const inputs = section.querySelectorAll('input[required]');
+                let isValid = true;
+                
+                // Reset all error states first
+                inputs.forEach(input => {
+                    input.classList.remove('error');
+                    input.nextElementSibling.style.display = 'none';
+                });
+
+                // Check each input
+                inputs.forEach(input => {
+                    if (!input.value.trim()) {
+                        input.classList.add('error');
+                        input.nextElementSibling.style.display = 'block';
+                        isValid = false;
+                    }
+                });
+
+                return isValid;
+            };
+
+            const updateButtons = () => {
+                prevBtn.style.display = currentStep === 0 ? 'none' : 'block';
+                nextBtn.textContent = currentStep === sections.length - 1 ? 'Submit' : 'Next';
+            };
+
+            nextBtn.addEventListener('click', () => {
+                const currentSection = sections[currentStep];
+                
+                if (!validateSection(currentSection)) {
+                    return;
+                }
+
+                if (currentStep === sections.length - 1) {
+                    form.submit();
+                    return;
+                }
+
+                currentSection.classList.remove('active');
+                currentStep++;
+                sections[currentStep].classList.add('active');
+                progress.style.width = `${((currentStep + 1) / sections.length) * 100}%`;
+                
+                updateButtons();
+                updateStepIndicators();
+            });
+
+            prevBtn.addEventListener('click', () => {
+                sections[currentStep].classList.remove('active');
+                currentStep--;
+                sections[currentStep].classList.add('active');
+                progress.style.width = `${((currentStep + 1) / sections.length) * 100}%`;
+                
+                updateButtons();
+                updateStepIndicators();
+
+                // Hide any error messages when going back
+                const inputs = sections[currentStep].querySelectorAll('input');
+                inputs.forEach(input => {
+                    input.classList.remove('error');
+                    input.nextElementSibling.style.display = 'none';
+                });
+            });
+
+            // Handle input validation on typing
+            form.querySelectorAll('input[required]').forEach(input => {
+                input.addEventListener('input', () => {
+                    if (input.value.trim()) {
+                        input.classList.remove('error');
+                        input.nextElementSibling.style.display = 'none';
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 </html>

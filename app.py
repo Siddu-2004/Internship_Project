@@ -45,6 +45,40 @@ def analyze_responses(responses):
 def map_to_score(avg):
     return int((1 - avg) * 50 + 1)
 
+# Suggestions dictionary
+SUGGESTIONS = {
+    "Emotional State": {
+        (1, 25): "It seems you're going through a difficult time emotionally. Consider talking to a counselor or taking short breaks to focus on self-care.",
+        (26, 50): "You might be feeling somewhat low or anxious. Try mindfulness exercises or journaling to process your feelings.",
+        (51, 75): "You're doing okay emotionally. Keep using strategies that help you maintain balance, like hobbies or social time.",
+        (76, 100): "You appear to be in a positive emotional state. Keep it up and consider sharing your good energy with your team!"
+    },
+    "Workload & Role": {
+        (1, 25): "Your workload or role may be overwhelming. Consider discussing priorities or task redistribution with your manager.",
+        (26, 50): "You might be struggling with motivation or clarity in your role. Reflect on what you enjoy most and talk to your lead.",
+        (51, 75): "Your workload seems manageable but there's room for better alignment. Consider setting clearer goals.",
+        (76, 100): "You seem satisfied and fulfilled in your role. Great job! Consider mentoring others or expanding your responsibilities."
+    },
+    "Team & Social": {
+        (1, 25): "You may feel isolated or disconnected. Try scheduling 1:1s or team coffee chats to rebuild rapport.",
+        (26, 50): "Team dynamics may be off. Open communication or a team-building activity could help strengthen bonds.",
+        (51, 75): "You're feeling moderately connected. Keep building on this by offering support or initiating casual chats.",
+        (76, 100): "You're well-connected with your team! Consider fostering this by recognizing others and encouraging inclusivity."
+    },
+    "Growth & Development": {
+        (1, 25): "You might feel stagnant in your growth. Request feedback or seek out new learning opportunities.",
+        (26, 50): "There may be some gaps in support or direction. A development plan or mentorship could help.",
+        (51, 75): "You're progressing steadily. Consider setting a skill goal or attending a workshop to push further.",
+        (76, 100): "You're growing well in your role! Keep the momentum by mentoring or setting stretch goals."
+    }
+}
+
+def get_suggestion(section, score):
+    for (min_score, max_score), suggestion in SUGGESTIONS[section].items():
+        if min_score <= score <= max_score:
+            return suggestion
+    return ""
+
 # Routes
 @app.route('/')
 def home():
@@ -56,25 +90,38 @@ def login():
     password = request.form['password']
     if os.path.exists(USERS_FILE):
         df = pd.read_csv(USERS_FILE)
-        if ((df['username'] == username) & (df['password'] == password)).any():
-            session['username'] = username
-            return redirect('/checkin')
-    return "Invalid credentials. <a href='/'>Try again</a>"
+        user_exists = username in df['username'].values
+        if not user_exists:
+            return render_template('login.html', error="Username not found")
+        
+        user_row = df[df['username'] == username].iloc[0]
+        if user_row['password'] != password:
+            return render_template('login.html', error="Incorrect password")
+            
+        session['username'] = username
+        return redirect('/checkin')
+    return render_template('login.html', error="No registered users found")
 
 @app.route('/signup')
-def signup_page():
+def signup():
     return render_template('signup.html')
 
 @app.route('/register', methods=['POST'])
 def register():
     username = request.form['username']
     password = request.form['password']
+    
+    # Validate input
+    if not username or not password:
+        return render_template('signup.html', error="Username and password are required")
+        
     if os.path.exists(USERS_FILE):
         df = pd.read_csv(USERS_FILE)
         if username in df['username'].values:
-            return "Username already exists. <a href='/'>Try again</a>"
+            return render_template('signup.html', error="This username is already taken. Please choose a different one")
     else:
         df = pd.DataFrame(columns=["username", "password"])
+    
     df.loc[len(df)] = [username, password]
     df.to_csv(USERS_FILE, index=False)
     return redirect('/')
@@ -93,9 +140,12 @@ def checkin():
             scores[category] = analyze_responses(answers)
 
         summary = {}
+        suggestions = {}
         for section, sc in scores.items():
             avg = sum(sc) / len(sc)
-            summary[section] = map_to_score(avg)
+            score = map_to_score(avg)
+            summary[section] = score
+            suggestions[section] = get_suggestion(section, score)
 
         row = {
             'Name': session['username'],
@@ -105,7 +155,7 @@ def checkin():
 
         df = pd.DataFrame([row])
         df.to_csv(LOG_FILE, mode='a', index=False, header=not os.path.exists(LOG_FILE))
-        return render_template('summary.html', summary=summary)
+        return render_template('summary.html', summary=summary, suggestions=suggestions)
 
     return render_template('checkin.html', questions=questions)
 
