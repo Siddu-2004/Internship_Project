@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Summary</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h2>Check-In Summary</h2>
+    <ul>
+        {% for section, score in summary.items() %}
+            <li><strong>{{ section }}:</strong> {{ score }}/100</li>
+        {% endfor %}
+    </ul>
+    <a href="/logout">Logout</a>
+</body>
+</html>

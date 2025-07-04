@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Emotional Check-In</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h2>Emotional Check-In</h2>
+    <form method="POST">
+        {% for category, qs in questions.items() %}
+            <h3>{{ category }}</h3>
+            {% for q in qs %}
+                <label>{{ q }}</label><br>
+                <input type="text" name="{{ category }}_{{ loop.index0 }}" required><br><br>
+            {% endfor %}
+        {% endfor %}
+        <button type="submit">Submit</button>
+    </form>
+</body>
+</html>
